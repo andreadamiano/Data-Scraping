@@ -3,6 +3,7 @@ import requests
 from urllib.request import urlopen, Request
 import time
 import random
+import re
 
 # class Content:
 #     def __init__(self, url, title, body):
@@ -128,40 +129,160 @@ import random
 # crawler.parse(websites[2], 'https://www.brookings.edu/events/bloggers-buzz-and-soundbites-innovative-media-approaches-to-humanitarian-response/')   
 
 
+# class Content:
+#     """
+#     class to store web content 
+#     """
+#     def __init__(self, topic, url, title, body):
+#         self.topic = topic
+#         self.url = url
+#         self.title = title
+#         self.body = body
+
+#     def print(self):
+#         print(f"New article found for topic: {self.topic}")
+#         print(F"Title: {self.title}")
+#         print(F"Body: {self.body}")
+#         print(F"Url: {self.url}\n")
+
+
+
+# class Website:
+#     """
+#     class to store website info 
+#     """
+#     def __init__(self, name, url, searchUrl, resultListing, resultUrl, absoluteUrl, titleTag, bodyTag):
+#         self.name = name #website name
+#         self.url = url #website url 
+#         self.searchUrl = searchUrl #search url pattern (e.g., "https://www.amazon.com/s?k={query}")
+#         self.resultListing = resultListing #css selector for each result box 
+#         self.resultUrl = resultUrl #css selector for the link inside each result
+#         self.absoluteUrl=absoluteUrl #boolean: are links absolute or relative  
+#         self.titleTag = titleTag #css selector for title 
+#         self.bodyTag = bodyTag #css selctor for body 
+
+# #the crawler uses the search bar to get to other web pages 
+# class Crawler:
+#     def getPage(self, url):
+#         try:
+#             headers = {
+#                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+#                 'Accept-Language': 'en-US,en;q=0.9',
+#                 'Referer': 'https://www.reuters.com/'
+#             }
+#             req = requests.get(url, headers= headers)
+
+#         except requests.exceptions.RequestException:
+#             return None
+        
+#         return BeautifulSoup(req.text, 'html.parser')
+    
+#     def safeGet (self, pageObj, selector):
+#         childObj = pageObj.select(selector)
+#         if childObj is not None and len(childObj) >0:
+#             if isinstance(childObj, list):
+#                 return [elem.get_text() for elem in childObj]
+
+#             else:
+#                 return childObj[0].get_text() #return the first of the list 
+        
+#         return ''
+    
+#     def search(self, topic, site):
+#         """
+#         search a given website for a given topic and record all the pages found
+#         """
+
+#         bs = self.getPage(site.searchUrl + topic)
+#         searchReults = bs.select(site.resultListing)
+
+#         #loop trhough each result 
+#         for result in searchReults:
+#             url = result.select(site.resultUrl)[0].attrs['href'] #get the url of the result of the research 
+#             time.sleep(1)
+#             # print(url)
+#             # print('\n')
+
+#             #check if the url is an absolute or relative path 
+#             if site.absoluteUrl:
+#                 bs = self.getPage(url)
+
+#             else:
+#                 bs = self.getPage(site.url + url)
+
+#             if bs is None:
+#                 print("Something went wrong with this page Url, skipping")
+#                 return
+
+
+#             title = self.safeGet(bs, site.titleTag)
+#             body = self.safeGet(bs, site.bodyTag)            
+
+#             if title != '' and body != '':
+#                 content = Content(topic, url, title, body)
+#                 content.print()
+
+
+
+# crawler = Crawler()
+
+# siteData = [
+#     ['Wikipedia', 'https://en.wikipedia.org',
+#     'https://en.wikipedia.org/wiki/Special:Search?search=',
+#     'div.mw-content-ltr.mw-parser-output li', 
+#     'a', 
+#     False, 
+#     'h1#firstHeading', 
+#     'div.mw-parser-output > p'
+#     ]
+# ]
+
+
+# sites = []
+# for row in siteData:
+#     sites.append(Website(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
+
+
+# topics = ['python', 'data science']
+
+# for topic in topics:
+#     print(f"Getting info about: {topic}")
+#     crawler.search(topic, sites[0])
+
+
+#crawling websites via links 
+class WebSite:
+    def __init__(self, name, url, targetPattern, absoluteUrl, titleTag, bodyTag):
+        self.name = name
+        self.url = url 
+        self.targetPattern = targetPattern
+        self.absoluteUrl = absoluteUrl
+        self.titleTag = titleTag
+        self.bodyTag = bodyTag
+
+
 class Content:
-    """
-    class to store web content 
-    """
-    def __init__(self, topic, url, title, body):
-        self.topic = topic
+    def __init__(self, url, title, body):
         self.url = url
         self.title = title
         self.body = body
 
+
     def print(self):
-        print(f"New article found for topic: {self.topic}")
-        print(F"Title: {self.title}")
-        print(F"Body: {self.body}")
-        print(F"Url: {self.url}\n")
+        print(f'Url: {self.url}')
+        print(f'Title: {self.title}')
+        print(f'Body: {self.body}\n\n')
 
-
-
-class Website:
-    """
-    class to store website info 
-    """
-    def __init__(self, name, url, searchUrl, resultListing, resultUrl, absoluteUrl, titleTag, bodyTag):
-        self.name = name #website name
-        self.url = url #website url 
-        self.searchUrl = searchUrl #search url pattern (e.g., "https://www.amazon.com/s?k={query}")
-        self.resultListing = resultListing #css selector for each result box 
-        self.resultUrl = resultUrl #css selector for the link inside each result
-        self.absoluteUrl=absoluteUrl #boolean: are links absolute or relative  
-        self.titleTag = titleTag #css selector for title 
-        self.bodyTag = bodyTag #css selctor for body 
-
-#the crawler uses the search bar to get to other web pages 
+        
 class Crawler:
+    '''
+    the crawler start from the the home page and pass through every internal link it founds   
+    '''
+    def __init__(self, site):
+        self.site = site
+        self.visited = []
+
+
     def getPage(self, url):
         try:
             headers = {
@@ -176,74 +297,46 @@ class Crawler:
         
         return BeautifulSoup(req.text, 'html.parser')
     
-    def safeGet (self, pageObj, selector):
-        childObj = pageObj.select(selector)
-        if childObj is not None and len(childObj) >0:
-            if isinstance(childObj, list):
-                return [elem.get_text() for elem in childObj]
 
-            else:
-                return childObj[0].get_text() #return the first of the list 
-        
+    def safeGet(self, pageObj, selector):
+        selectedElems = pageObj.select(selector)
+        if selectedElems is not None and len(selectedElems) >0:
+            return '\n'.join([elem.get_text() for elem in selectedElems])
+
         return ''
-    
-    def search(self, topic, site):
-        """
-        search a given website for a given topic and record all the pages found
-        """
 
-        bs = self.getPage(site.searchUrl + topic)
-        searchReults = bs.select(site.resultListing)
-
-        #loop trhough each result 
-        for result in searchReults:
-            url = result.select(site.resultUrl)[0].attrs['href'] #get the url of the result of the research 
-            time.sleep(1)
-            print(url)
-            print('\n')
-
-            #check if the url is an absolute or relative path 
-            if site.absoluteUrl:
-                bs = self.getPage(url)
-
-            else:
-                bs = self.getPage(site.url + url)
-
-            if bs is None:
-                print("Something went wrong with this page Url, skipping")
-                return
-
-
-            title = self.safeGet(bs, site.titleTag)
-            body = self.safeGet(bs, site.bodyTag)            
+    def parse (self, url):
+        bs = self.getPage(url)
+        if bs is not None:
+            title = self.safeGet(bs, self.site.titleTag)
+            body =  self.safeGet(bs, self.site.bodyTag)
 
             if title != '' and body != '':
-                content = Content(topic, url, title, body)
+                content = Content(url, title, body)
                 content.print()
 
+    
+    def crawl(self):
+        """
+        get pages from website home page
+        """
+
+        bs = self.getPage(self.site.url)
+        targetPages = bs.find_all('a', href = re.compile(self.site.targetPattern))
+
+        # for targetPage in targetPages:
+        #     print(targetPage.attrs['href'])
+
+        for targetPage in targetPages:
+            targetPage = targetPage.attrs['href']
+            if targetPage not in self.visited:
+                self.visited.append(targetPage)
+                if not self.site.absoluteUrl:
+                    targetPage = f'{self.site.url}{targetPage}'
+
+                self.parse(targetPage)
 
 
-crawler = Crawler()
-
-siteData = [
-    ['Wikipedia', 'https://en.wikipedia.org',
-    'https://en.wikipedia.org/wiki/Special:Search?search=',
-    'div.mw-content-ltr.mw-parser-output li', 
-    'a', 
-    False, 
-    'h1#firstHeading', 
-    'div.mw-parser-output > p'
-    ]
-]
-
-
-sites = []
-for row in siteData:
-    sites.append(Website(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
-
-
-topics = ['python', 'data science']
-
-for topic in topics:
-    print(f"Getting info about: {topic}")
-    crawler.search(topic, sites[0])
+reuters = WebSite('Reuters', 'https://www.reuters.com', '^/[a-z/]+/.*$', False, 'h1','p')
+crawler = Crawler(reuters)
+crawler.crawl()

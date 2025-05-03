@@ -1,5 +1,5 @@
 from urllib.error import HTTPError , URLError
-from urllib.request import urlopen
+from urllib.request import urlopen ,Request
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import random
@@ -116,4 +116,34 @@ def getInternalLinks(bs, includeUrl):
 #retrieve a list of external links
 def getExternalLinks (bs, excludeUrl):
     externalLinks = []
+
+    #find all links containing 'http' that do not contain the current url
+    for link in bs.find_all('a' , href = lambda href: href and ((href.startswith('http') or href.startswith('www')) and excludeUrl not in href)):
+        if link.attrs['href'] not in externalLinks:
+            externalLinks.append(link.attrs['href'])
+
+    return externalLinks
+
+
+def getRandomExternalLinks(startingPage):
+    req = Request(startingPage, headers={'User-Agent': 'Mozilla/5.0'})
+    html = urlopen(req)
+    bs = BeautifulSoup(html.read(), 'html.parser')
+    externalLinks = getExternalLinks(bs, urlparse(startingPage).netloc)
+
+    if len(externalLinks) ==0:
+        print("no external lnks, looking around the site for one")
+
+        domain = f'{urlparse(startingPage).scheme}://{urlparse(startingPage).netloc}'
+        internalLinks = getInternalLinks(bs, startingPage)
+        return getRandomExternalLinks(internalLinks[random.randint(0, len(internalLinks)-1)])
     
+    else:
+        return externalLinks[random.randint(0, len(externalLinks)-1)]
+    
+def followExternaOnly(startingSite):
+    externaLink = getRandomExternalLinks(startingSite)
+    print(f'random external link is: {externaLink}')
+    followExternaOnly(externaLink)
+
+followExternaOnly('http://oreilly.com')
